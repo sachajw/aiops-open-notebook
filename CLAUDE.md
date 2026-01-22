@@ -1,12 +1,135 @@
-# Open Notebook - Root CLAUDE.md
+# CLAUDE.md
 
-This file provides architectural guidance for contributors working on Open Notebook at the project level.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
 **Open Notebook** is an open-source, privacy-focused alternative to Google's Notebook LM. It's an AI-powered research assistant enabling users to upload multi-modal content (PDFs, audio, video, web pages), generate intelligent notes, search semantically, chat with AI models, and produce professional podcasts—all with complete control over data and choice of AI providers.
 
 **Key Values**: Privacy-first, multi-provider AI support, fully self-hosted option, open-source transparency.
+
+---
+
+## Common Development Commands
+
+### Starting Services
+
+```bash
+# Start all services (DB + API + Worker + Frontend)
+make start-all
+
+# Stop all services
+make stop-all
+
+# Check service status
+make status
+
+# Start individual services
+make database    # SurrealDB only
+make api         # FastAPI backend (port 5055)
+make frontend    # Next.js dev server (port 3000)
+make worker      # Background job worker
+```
+
+### Docker Development
+
+```bash
+# Development environment (docker-compose.dev.yml)
+make dev
+
+# Full stack with all services
+make full
+```
+
+### Code Quality
+
+```bash
+# Python linting (auto-fix)
+make ruff
+# or: ruff check . --fix
+
+# Python type checking
+make lint
+# or: uv run python -m mypy .
+
+# Clean cache directories
+make clean-cache
+```
+
+### Testing
+
+```bash
+# Python tests
+uv run pytest tests/
+
+# Frontend tests
+cd frontend && npm run test
+cd frontend && npm run test:watch
+cd frontend && npm run test:ui
+
+# Frontend linting
+cd frontend && npm run lint
+```
+
+### Frontend Build
+
+```bash
+cd frontend
+npm run dev      # Development server
+npm run build    # Production build
+npm run start    # Production server
+```
+
+### Docker Build & Release
+
+```bash
+# Build production image locally (current platform only)
+make docker-build-local
+
+# Push version tags to registries (no latest)
+make docker-push
+
+# Update v1-latest tags to current version
+make docker-push-latest
+
+# Full release (version + latest)
+make docker-release
+```
+
+---
+
+## Environment Configuration
+
+Copy `.env.example` to `.env` for local development. Key variables:
+
+```bash
+# Frontend
+API_URL=http://localhost:5055           # Frontend → API connection
+INTERNAL_API_URL=http://localhost:5055  # Next.js proxy target
+
+# Database
+SURREAL_URL=ws://surrealdb:8000        # SurrealDB WebSocket URL
+SURREAL_USER=root                      # Database user
+SURREAL_PASS=root                      # Database password
+SURREAL_NAMESPACE=open-notebook        # Database namespace
+SURREAL_DATABASE=open-notebook         # Database name
+
+# AI Providers (set at least one)
+OPENAI_API_KEY=sk-...                  # OpenAI
+ANTHROPIC_API_KEY=sk-ant-...           # Anthropic
+GOOGLE_API_KEY=...                     # Google GenAI
+GROQ_API_KEY=gsk_...                   # Groq
+# ... and 10+ more providers
+
+# Optional
+OPEN_NOTEBOOK_PASSWORD=...             # Simple password auth (dev-only)
+API_CLIENT_TIMEOUT=300                 # Frontend request timeout (seconds)
+ESPERANTO_LLM_TIMEOUT=60               # LLM inference timeout (seconds)
+
+# Job Queue (surreal-commands)
+SURREAL_COMMANDS_CONCURRENCY=5         # Worker concurrency
+SURREAL_COMMANDS_RETRY_ATTEMPTS=5      # Retry attempts for RuntimeError
+```
 
 ---
 
@@ -140,6 +263,12 @@ User documentation is at @docs/
 - **URL handling**: Extracts text + metadata from web pages
 - **Large files**: Content processing is sync; may block API briefly
 
+### Fire-and-Forget Jobs (surreal-commands)
+- **Embedding operations**: `submit_command()` returns immediately with `command_id`
+- **Poll for status**: Use `/commands/{command_id}` endpoint to check completion
+- **Content-type aware**: Chunking differs for HTML vs Markdown vs plain text
+- **Retry behavior**: RuntimeError auto-retries (5 attempts), other exceptions permanent
+
 ---
 
 ## Component References
@@ -216,4 +345,4 @@ See dedicated CLAUDE.md files for detailed guidance:
 
 ---
 
-**Last Updated**: January 2026 | **Project Version**: 1.2.4+
+**Last Updated**: January 2026 | **Project Version**: 1.6.0+
